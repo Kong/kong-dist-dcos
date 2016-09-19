@@ -1,0 +1,104 @@
+{
+  "id": "/kong",
+  "cmd": "KONG_NGINX_DAEMON=\"off\" KONG_CLUSTER_ADVERTISE=$HOST:$PORT3  kong start",
+  "cpus": 1,
+  "mem": 512,
+  "disk": 0,
+  "instances": 1,
+  "acceptedResourceRoles": [
+    "*"
+  ],
+  "container": {
+    "type": "DOCKER",
+    "volumes": [],
+    "docker": {
+      "image": "mashape/kong:0.9.0",
+      "network": "BRIDGE",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 0,
+          "servicePort": 10001,
+          "protocol": "tcp",
+          "name": "proxy",
+          "labels": {}
+        },
+        {
+          "containerPort": 8001,
+          "hostPort": 0,
+          "servicePort": 10002,
+          "protocol": "tcp",
+          "name": "admin",
+          "labels": {}
+        },
+        {
+          "containerPort": 8443,
+          "hostPort": 0,
+          "servicePort": 10003,
+          "protocol": "tcp",
+          "name": "ssl",
+          "labels": {}
+        },
+        {
+          "containerPort": 7946,
+          "hostPort": 0,
+          "servicePort": 10004,
+          "protocol": "tcp,udp",
+          "name": "serf",
+          "labels": {}
+        }
+      ],
+      "privileged": false,
+      "parameters": [],
+      "forcePullImage": true
+    }
+  },
+  "env": {
+    "KONG_PG_PASSWORD": "kong",
+    "KONG_PG_HOST": "marathon-lb-internal.marathon.mesos",
+    "KONG_PG_USER": "kong",
+    "KONG_PG_PORT": "10000",
+    "KONG_DATABASE": "postgres"
+  },
+  "healthChecks": [
+    {
+      "protocol": "TCP",
+      "portIndex": 1,
+      "gracePeriodSeconds": 300,
+      "intervalSeconds": 60,
+      "timeoutSeconds": 20,
+      "maxConsecutiveFailures": 3,
+      "ignoreHttp1xx": false
+    }
+  ],
+  "labels": {
+    "HAPROXY_1_GROUP": "external",
+    "HAPROXY_0_GROUP": "external"
+  },
+  "portDefinitions": [
+    {
+      "port": 10001,
+      "protocol": "tcp",
+      "name": "proxy",
+      "labels": {}
+    },
+    {
+      "port": 10002,
+      "protocol": "tcp",
+      "name": "admin",
+      "labels": {}
+    },
+    {
+      "port": 10003,
+      "protocol": "tcp",
+      "name": "ssl",
+      "labels": {}
+    },
+    {
+      "port": 10004,
+      "protocol": "udp",
+      "name": "serf-udp",
+      "labels": {}
+    }
+  ]
+}
