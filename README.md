@@ -58,7 +58,17 @@ Following guide use AWS for provisioning the DC/OS Cluster and assumes you have 
 
     Quickly learn how to use Kong with the [5-minute Quickstart](/docs/latest/getting-started/quickstart).
 
-    
+## Benchmarking Kong
+  
+  We prepared a simple benchmark by comparing performance of Nginx and Kong running on DC/OS cluster. We used [Jmeter](http://jmeter.apache.org/usermanual/build-web-test-plan.html) to genrate sample requests and collect the performace data. We ran a Kong instance with one plugin `basic-auth` and a Nginx instance proxying request to
+  host `mockbin.com`. Both Kong and Nginx instance assingned 1 cpu and 1 gb ram. We ran the test plan using 25 threads with 400 requests in loop.
+
+### Mesurements
+
+| Proxy   | Samples| Average| Min  | Max   | Std. Dev. | Error %  | Throughput | KB/sec | Avg. Bytes |
+|---------|--------|--------|------|-------|-----------|----------|------------|--------|------------|
+| Nginx   | 10000  | 202    | 192  | 1000  | 28.34     | 0.00%    | 109.6      | 184.83 | 1727.2     |
+| Kong    | 10000  | 207    | 193  | 8574  | 109.46    | 0.00%    | 101.3      | 209.14 | 2113.4     |
 
 ## Enterprise Support
 
