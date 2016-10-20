@@ -52,8 +52,8 @@ Following guide use AWS for provisioning the DC/OS Cluster and assumes you have 
 	If you used [AWS documentation](https://dcos.io/docs/1.8/administration/installing/cloud/aws/) to create the cluster then you have to expose Kong service ports on Public ELB to access the kong Services externally. You can also log into the Public Slave agent and curl Kong services.  
 
     ```bash
-    $ curl marathon-lb.maraton.mesos:10001
-    $ curl marathon-lb.maraton.mesos:10002
+    $ curl marathon-lb.marathon.mesos:10001
+    $ curl marathon-lb.marathon.mesos:10002
     ```
 
     Quickly learn how to use Kong with the [5-minute Quickstart](/docs/latest/getting-started/quickstart).
