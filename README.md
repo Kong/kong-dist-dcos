@@ -64,11 +64,11 @@ Following guide use AWS for provisioning the DC/OS Cluster and assumes you have 
     $ curl marathon-lb.marathon.mesos:10002
     ```
 
-    Quickly learn how to use Kong with the [5-minute Quickstart](/docs/latest/getting-started/quickstart).
+    Quickly learn how to use Kong with the [5-minute Quickstart](https://getkong.org//docs/latest/getting-started/quickstart).
 
 ## Benchmarking Kong
   
-  We prepared a simple benchmark by comparing performance of Nginx and Kong running on DC/OS cluster. We used [Jmeter](http://jmeter.apache.org/usermanual/build-web-test-plan.html) to genrate sample requests and collect the performace data. We ran a Kong instance with one plugin `basic-auth` and a Nginx instance proxying request to
+  We prepared a simple benchmark by comparing performance of Nginx and Kong (with Postgres) running on DC/OS cluster. We used [Jmeter](http://jmeter.apache.org/usermanual/build-web-test-plan.html) to genrate sample requests and collect the performace data. We ran a Kong instance with one plugin `basic-auth` and a Nginx instance proxying request to
   host `mockbin.com`. Both Kong and Nginx instance assingned 1 cpu and 1 gb ram. We ran the test plan using 25 threads with 400 requests in loop.
 
 ### Mesurements
