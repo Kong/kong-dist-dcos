@@ -37,14 +37,22 @@ Following guide use AWS for provisioning the DC/OS Cluster and assumes you have 
     ```
 3. **Deploy Kong supported Database**
 	
+    Postgres:
+
     ```bash
     $ dcos marathon app add postgres.json
+    ```
+
+    Cassandra:
+
+    ```bash
+    $ dcos package install cassandra
     ```
 
 4. **Deploy Kong**
 	
     ```bash
-    $ dcos marathon app add kong.json
+    $ dcos marathon app add kong_<postgres|cassandra>.json
     ```
 
 5. **Using Kong:**

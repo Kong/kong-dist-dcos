@@ -1,9 +1,7 @@
 {
   "id": "/postgres",
-  "cmd": null,
   "cpus": 1,
-  "mem": 512,
-  "disk": 0,
+  "mem": 1024,
   "instances": 1,
   "container": {
     "type": "DOCKER",
@@ -17,7 +15,7 @@
       }
     ],
     "docker": {
-      "image": "postgres:latest",
+      "image": "postgres:9.5",
       "network": "BRIDGE",
       "portMappings": [
         {
@@ -38,7 +36,8 @@
     "PGDATA": "pgdata",
     "POSTGRES_PASSWORD": "kong",
     "POSTGRES_USER": "kong",
-    "POSTGRES_DB": "kong"
+    "POSTGRES_DB": "kong",
+    "PGDATA": "/mnt/mesos/sandbox/pgdata"
   },
   "healthChecks": [
     {
@@ -56,7 +55,7 @@
   },
   "portDefinitions": [
     {
-      "port": 10000,
+      "port": 10050,
       "protocol": "tcp",
       "labels": {}
     }

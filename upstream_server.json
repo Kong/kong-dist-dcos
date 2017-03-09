@@ -1,0 +1,58 @@
+{
+  "volumes": null,
+  "id": "/backend",
+  "cmd": null,
+  "args": null,
+  "user": null,
+  "env": null,
+  "instances": 3,
+  "cpus": 4,
+  "mem": 2048,
+  "disk": 0,
+  "gpus": 0,
+  "executor": null,
+  "constraints": null,
+  "fetch": null,
+  "storeUrls": null,
+  "backoffSeconds": 1,
+  "backoffFactor": 1.15,
+  "maxLaunchDelaySeconds": 3600,
+  "container": {
+    "docker": {
+      "image": "shashiranjan84/node-web-app",
+      "forcePullImage": false,
+      "privileged": false,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp",
+          "name": "http",
+          "servicePort": 10103
+        }
+      ],
+      "network": "BRIDGE"
+    }
+  },
+  "healthChecks": null,
+  "readinessChecks": null,
+  "dependencies": null,
+  "upgradeStrategy": {
+    "minimumHealthCapacity": 1,
+    "maximumOverCapacity": 1
+  },
+  "labels": {
+    "HAPROXY_GROUP": "internal"
+  },
+  "acceptedResourceRoles": null,
+  "residency": null,
+  "secrets": null,
+  "taskKillGracePeriodSeconds": null,
+  "portDefinitions": [
+    {
+      "port": 10103,
+      "protocol": "tcp",
+      "labels": {}
+    }
+  ],
+  "requirePorts": false
+}
