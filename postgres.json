@@ -1,8 +1,13 @@
 {
   "id": "/postgres",
+  "instances": 1,
   "cpus": 1,
   "mem": 1024,
-  "instances": 1,
+  "disk": 0,
+  "gpus": 0,
+  "backoffSeconds": 1,
+  "backoffFactor": 1.15,
+  "maxLaunchDelaySeconds": 3600,
   "container": {
     "type": "DOCKER",
     "volumes": [
@@ -10,7 +15,8 @@
         "containerPath": "pgdata",
         "mode": "RW",
         "persistent": {
-          "size": 100
+          "size": 100,
+          "type": "root"
         }
       }
     ],
@@ -21,47 +27,45 @@
         {
           "containerPort": 5432,
           "hostPort": 0,
-          "servicePort": 10000,
+          "servicePort": 10101,
           "protocol": "tcp",
-          "name": "postgres",
-          "labels": {}
+          "name": "psql",
+          "labels": {
+            "VIP_0": "postgres:5432"
+          }
         }
       ],
       "privileged": false,
-      "parameters": [],
       "forcePullImage": false
     }
   },
-  "env": {
-    "PGDATA": "pgdata",
-    "POSTGRES_PASSWORD": "kong",
-    "POSTGRES_USER": "kong",
-    "POSTGRES_DB": "kong",
-    "PGDATA": "/mnt/mesos/sandbox/pgdata"
-  },
   "healthChecks": [
     {
-      "protocol": "TCP",
-      "portIndex": 0,
       "gracePeriodSeconds": 300,
       "intervalSeconds": 60,
       "timeoutSeconds": 20,
       "maxConsecutiveFailures": 3,
-      "ignoreHttp1xx": false
-    }
-  ],
-  "labels": {
-    "HAPROXY_GROUP": "internal"
-  },
-  "portDefinitions": [
-    {
-      "port": 10050,
-      "protocol": "tcp",
-      "labels": {}
+      "delaySeconds": 15,
+      "command": {
+        "value": "/bin/bash -c \\\"</dev/tcp/$HOST/$PORT0\\\""
+      },
+      "protocol": "COMMAND"
     }
   ],
   "upgradeStrategy": {
     "minimumHealthCapacity": 0,
     "maximumOverCapacity": 0
+  },
+  "residency": {
+    "relaunchEscalationTimeoutSeconds": 3600,
+    "taskLostBehavior": "WAIT_FOREVER"
+  },
+  "killSelection": "YOUNGEST_FIRST",
+  "requirePorts": true,
+  "env": {
+    "POSTGRES_DB": "kong",
+    "POSTGRES_PASSWORD": "kong",
+    "POSTGRES_USER": "kong",
+    "PGDATA": "/mnt/mesos/sandbox/pgdata"
   }
 }

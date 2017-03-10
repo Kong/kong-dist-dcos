@@ -1,4 +1,4 @@
-# [KONG][website-url] :heavy_plus_sign: [DCOS Deployment](https://docs.mesosphere.com/1.8/overview/)
+# [KONG][website-url] :heavy_plus_sign: [DCOS Deployment](https://dcos.io/docs/1.9/)
 
 [![Website][website-badge]][website-url]
 [![Documentation][documentation-badge]][documentation-url]
@@ -9,52 +9,54 @@
 
 Provision Kong on Mesosphere DC/OS cluster using following steps.
 
-Kong can easily be provisioned on a Mesosphere DC/OS cluster using following
+Kong can be provisioned on a Mesosphere DC/OS cluster using following
 steps:
 
 The following steps use AWS for provisioning the DC/OS cluster and assumes you 
-have basic knowledge of [DC/OS](https://docs.mesosphere.com/1.8/overview/), 
-[Marathon](https://mesosphere.github.io/marathon/), and
-[Marathon-lb](https://docs.mesosphere.com/1.7/usage/service-discovery/marathon-lb/usage/).
+have basic knowledge of [DC/OS](https://dcos.io/docs/1.9/), 
+[Marathon](https://mesosphere.github.io/marathon/), 
+[VIPs](https://dcos.io/docs/1.9/networking/load-balancing-vips/virtual-ip-addresses/),
+and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
 
 1. **Initial setup**
 
     Download or clone the following repo:
 
     ```bash
-    $ git clone git@github.com:Mashape/kong-dist-mesos.git
-    $ cd kong-dist-mesos
+    $ git clone git@github.com:Mashape/kong-dist-dcos.git
+    $ cd kong-dist-dcos
     ```
 
     Skip to step 3 if you have already provisioned a DC/OS cluster.
 
 2. **Deploy a DC/OS cluster**
 
-    Following the [DC/OS AWS documentation](https://dcos.io/docs/1.8/administration/installing/cloud/aws/),
+    Following the [DC/OS AWS documentation](https://dcos.io/docs/1.9/installing/cloud/aws/),
     deploy a DC/OS cluster on which Kong will be provisioned
     
     Once your cluster is ready, Kong can be deployed using the
-    [DC/OS CLI](https://docs.mesosphere.com/1.8/usage/cli/) or the
-    [DC/OS GUI](https://docs.mesosphere.com/1.8/usage/webinterface/).
+    [DC/OS CLI](https://dcos.io/docs/1.9/cli/) or the
+    [DC/OS GUI](https://dcos.io/docs/1.9/gui/).
 
-3. **Deploy Marathon-lb**
+3. **Deploy Marathon-LB**
 
-    Using the `marathon-lb-internal.json` file included in this
-    repo, deploy Marathon-lb for internal and external service discovery
-    support:
+    We will use [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/)
+    for load balancing external traffic to cluster and
+    [VIPs](https://dcos.io/docs/1.9/networking/load-balancing-vips/virtual-ip-addresses/)
+    for load balancing internal traffic. Using the package `marathon-lb` deploy
+    the Marathon-LB:
 
     ```bash
     $ dcos package install marathon-lb
-    $ dcos package install --options=marathon-lb-internal.json marathon-lb
     ```
 
-4. **Deploy a Kong supported database**
-  
+4. **Deploy a Kong-supported database**
+
     Before deploying Kong, you need to provision a Cassandra or PostgreSQL
     instance.
 
-    For Cassandra, use the `cassandra.json` file from this repo to deploy
-    a Cassandra instance in the cluster:
+    For Cassandra, use the `cassandra` package to deploy 3 nodes of Cassandra
+    in the DC/OS cluster:
 
     ```bash
     $ dcos package install cassandra
@@ -86,11 +88,45 @@ have basic knowledge of [DC/OS](https://docs.mesosphere.com/1.8/overview/),
     following requests: 
 
     ```bash
-    $ curl marathon-lb.maraton.mesos:10001
-    $ curl marathon-lb.maraton.mesos:10002
+    $ curl marathon-lb.marathon.mesos:10001
+    $ curl marathon-lb.marathon.mesos:10002
     ```
 
-7. **Using Kong**
+7. **Deploy an upstream server**
+
+    For this demo, we created an app which returns `Hello world` on port `8080`.
+    Using the `my_app.json` file from the kong-dist-dcos repo, deploy the app in
+    the cluster which will act as a backend server to process requests received
+    from Kong:
+
+    ```bash
+    $ dcos marathon app add my_app.json
+    ```
+
+8. **Using Kong**
+    
+    Create an API on Kong:
+
+    ```bash
+    $ curl -i -X POST marathon-lb.marathon.mesos:10002/apis \
+    --data "name=myapp" \
+    --data "hosts=myapp.com" \
+    --data "upstream_url=http://myapp.marathon.l4lb.thisdcos.directory:8080"
+    HTTP/1.1 201 Created
+    ...
+
+    ```
+
+    Make a request to the API:
+
+    ```bash
+    $ curl -i -X GET marathon-lb.marathon.mesos:10001 \
+    --header "Host:myapp.com"
+    HTTP/1.1 200 OK
+    ...
+
+    Hello world
+    ```
 
     Quickly learn how to use Kong with the 
     [5-minute Quickstart](https://getkong.org//docs/latest/getting-started/quickstart).
