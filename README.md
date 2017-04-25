@@ -71,8 +71,10 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
 
 5. **Deploy Kong**
 
-    Using the `kong_<postgres|cassandra>.json` file from this repo,
-    deploy Kong in the cluster:
+    Using the `kong_<postgres|cassandra>.json` file from the kong-dist-dcos
+    repo, deploy Kong in the cluster. Template registers Kong's `proxy` and
+    `admin` ports on Marathon-LB as service ports `10001` and `10002`
+    respectively:
 
     ```bash
     $ dcos marathon app add kong_<postgres|cassandra>.json
