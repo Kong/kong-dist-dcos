@@ -7,14 +7,12 @@
 
 [![][kong-logo]][website-url]
 
-Provision Kong on Mesosphere DC/OS cluster using following steps.
-
 Kong can be provisioned on a Mesosphere DC/OS cluster using following
 steps:
 
-The following steps use AWS for provisioning the DC/OS cluster and assumes you 
-have basic knowledge of [DC/OS](https://dcos.io/docs/1.9/), 
-[Marathon](https://mesosphere.github.io/marathon/), 
+The following steps use AWS for provisioning the DC/OS cluster and assumes you
+have basic knowledge of [DC/OS](https://dcos.io/docs/1.9/),
+[Marathon](https://mesosphere.github.io/marathon/),
 [VIPs](https://dcos.io/docs/1.9/networking/load-balancing-vips/virtual-ip-addresses/),
 and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
 
@@ -33,7 +31,7 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
 
     Following the [DC/OS AWS documentation](https://dcos.io/docs/1.9/installing/cloud/aws/),
     deploy a DC/OS cluster on which Kong will be provisioned
-    
+
     Once your cluster is ready, Kong can be deployed using the
     [DC/OS CLI](https://dcos.io/docs/1.9/cli/) or the
     [DC/OS GUI](https://dcos.io/docs/1.9/gui/).
@@ -62,39 +60,224 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
     $ dcos package install cassandra
     ```
 
-    For PostgreSQL, use the `postgres.json` file from this repo to deploy
-    a PostgreSQL instance in the cluster:
+    For PostgreSQL, use the `postgresql` package with following option:
+
+    ```json
+    {
+      "service": {
+        "name": "postgresql"
+      },
+      "postgresql": {
+        "cpus": 0.3,
+        "mem": 512
+      },
+      "database": {
+        "username": "kong",
+        "password": "kong",
+        "dbname": "kong"
+      },
+      "storage": {
+        "host_volume": "/tmp",
+        "pgdata": "pgdata",
+        "persistence": {
+          "enable": true,
+          "volume_size": 512,
+          "external": {
+            "enable": false,
+            "volume_name": "postgresql",
+            "provider": "dvdi",
+            "driver": "rexray"
+          }
+        }
+      },
+      "networking": {
+        "port": 5432,
+        "host_mode": false,
+        "external_access": {
+          "enable": false,
+          "external_access_port": 15432
+        }
+      }
+    }
+    ```
+
+    It configures PostgreSQL as follows:
+
+    - `username`: This parameter configures the username for the kong database.
+    - `password`: This parameter configures the password for the kong database.
+    - `dbname`: This parameter configures the name of the kong database.
+    - `persistence`: This parameter enables persistent volumes for postgresql.
+
+    Install postgresql using `postgres.json` file from the repo:
 
     ```bash
-    $ dcos marathon app add postgres.json
+    $ dcos package install postgresql --options=postgres.json
     ```
 
 5. **Deploy Kong**
 
-    Using the `kong_<postgres|cassandra>.json` file from the kong-dist-dcos
-    repo, deploy Kong in the cluster. Template registers Kong's `proxy` and
-    `admin` ports on Marathon-LB as service ports `10001` and `10002`
-    respectively:
+    Now we have an external load balancer and Kong supported datastore
+    running. Using the `kong` package from Universe repo, deploy Kong
+    with following option:
+
+    ```json
+    {
+      "service": {
+        "name": "kong",
+        "instances": 1,
+        "cpus": 1,
+        "mem": 512,
+        "role": "*"
+      },
+      "configurations": {
+        "log-level": "notice",
+        "database": {
+          "migrations": true,
+          "use-cassandra": false
+        },
+        "postgres": {
+          "host": "postgresql.marathon.l4lb.thisdcos.directory",
+          "port": 5432,
+          "database": "kong",
+          "user": "kong",
+          "password": "kong"
+        },
+        "cassandra": {
+          "contact-points": "node-0.cassandra.mesos, node-1.cassandra.mesos, node-2.cassandra.mesos",
+          "port": 9042,
+          "keyspace": "kong"
+        }
+      },
+      "networking": {
+        "proxy": {
+          "external-access": true,
+          "vip-port": 8000,
+          "vip-port-ssl": 8443,
+          "virtual-host": "<vhost>",
+          "https-redirect": true,
+          "service-port": 10201
+        },
+        "admin": {
+          "external-access": true,
+          "vip-port": 8001,
+          "vip-port-ssl": 8444,
+          "https-redirect": false,
+          "service-port": 10202
+        }
+      }
+    }
+    ```
+
+    It configures Kong as follows:
+
+    | Config  |     Description |
+    |----------|:---------------|
+    | `configurations.log_level`|Sets the Kong's log_level configuration.|
+    | `configurations.custom-envs`|A space-separated list of Kong configurations.|
+    | `configurations.database.use-cassandra`|If `true`, Cassandra is used as the Kong database.|
+    | `configurations.database.migration`| If `true`, Kong will run migrations during start.|
+    | `configurations.postgres.host`| PostgreSQL host name.|
+    | `configurations.postgres.port`| PostgreSQL port.|
+    | `configurations.postgres.database`| PostgreSQL database name.|
+    | `configurations.postgres.user`| PostgreSQL username.|
+    | `configurations.postgres.password`| PostgreSQL password.|
+    | `configurations.cassandra.contact-points`| Comma separated list of Cassandra contact points.|
+    | `configurations.cassandra.port`| Port on which Cassandra listening for query.|
+    | `configurations.cassandra.keyspace`| Keyspace to use in Cassandra. Will be created if doesn't exist.|
+    | `networking.proxy.external-access`| If `true`, allows external access to Kong's proxy port.|
+    | `networking.proxy.virtual-host`| The virtual host address to integrate Kong proxy port with Marathon-lb.|
+    | `networking.proxy.https-redirect`| If `true`, Marathon-lb redirects HTTP traffic to HTTPS. This requires 'virtual-host' to be set.|
+    | `networking.proxy.service-port`| Port number to be used for reaching Kong's proxy port from outside of cluster.|
+    | `networking.proxy.vip-port`| Port number to be used for communication internally to the Proxy API. Default is 8000.|
+    | `networking.proxy.vip-port-ssl`| Port number to be used for secure communication internally to the Proxy API. Default is 8443.|
+    | `networking.admin.external-access`| If `true`, allows external access to Kong's admin port.|
+    | `networking.admin.virtual-host`| The virtual host address to integrate Kong admin port with Marathon-lb.|
+    | `networking.admin.https-redirect`| If `true`, Marathon-lb redirects HTTP traffic to HTTPS. This requires 'virtual-host' to be set.|
+    | `networking.admin.service-port`| Port number to be used for reaching Kong's admin port from outside of cluster.|
+    | `networking.admin.vip-port`| Port number to be used for communication internally to the Admin API. Default is 8001.|
+    | `networking.admin.vip-port-ssl`| Port number to be used for secure communication internally to the Admin API. Default is 8444.|
+
+    Note: Tweak the above configuration based on you datastore choice.
+
+    Run the following command to install Kong package:
 
     ```bash
-    $ dcos marathon app add kong_<postgres|cassandra>.json
+    $ dcos package install kong --options=kong_postgres.json
     ```
 
 6. **Verify your deployments**
 
-    If you followed the [AWS documentation](https://dcos.io/docs/1.8/administration/installing/cloud/aws/)
-    to create the cluster, then you have to expose your Kong service ports
-    on the public ELB to access the Kong services externally.
-    
-    You can also log into the public slave agent and test Kong by making the
-    following requests: 
+    To verify that our kong instance is up and running, we can use `dcos task`
+    command:
 
     ```bash
-    $ curl marathon-lb.marathon.mesos:10001
-    $ curl marathon-lb.marathon.mesos:10002
+    $ dcos task
+    NAME         HOST        USER  STATE  ID
+    kong         10.0.1.8   root    R    kong.af46c916-3b55-11e7-844e-52921ef4378d
+    marathon-lb  10.0.4.42  root    R    marathon-lb.d65c3cc3-3b54-11e7-844e-52921ef4378d
+    postgres     10.0.1.8   root    R    postgres.5b0a2635-3b55-11e7-844e-52921ef4378d
     ```
 
-7. **Deploy an upstream server**
+    Kong in the DC/OS UI
+
+    ![Kong on DC/OS](img/kong-dcos.png)
+
+7 **Using Kong**
+
+    Now that Kong is installed, to test the configuration, SSH into one of the
+    instances in the cluster (such as a master), and try curl-ing the endpoints:
+
+    - Admin
+
+      ```bash
+      $ curl -i -X GET http://marathon-lb.marathon.mesos:10202
+      HTTP/1.1 200 OK
+      Date: Fri, 02 Jun 2017 18:35:58 GMT
+      Content-Type: application/json; charset=utf-8
+      Transfer-Encoding: chunked
+      Connection: keep-alive
+      Access-Control-Allow-Origin: *
+      Server: kong/0.10.3
+      ..
+
+      {..}
+      ```
+
+    - Proxy
+
+      ```bash
+      $ curl -i -X GET http://marathon-lb.marathon.mesos:10201
+      HTTP/1.1 404 Not Found
+      Date: Fri, 02 Jun 2017 18:41:23 GMT
+      Content-Type: application/json; charset=utf-8
+      Transfer-Encoding: chunked
+      Server: kong/0.10.3
+
+      {"message":"no API found with those values"}
+      ```
+
+    - VHOST
+
+      In this example, public DNS name used is `mesos-tes-PublicSl-1TJB5U5K35XXT-591175086.us-east-1.elb.amazonaws.com`
+      for exposing the Kong's proxy port.
+
+      ![](img/kong-vhost.png)
+
+    Note: Kong returning 404 on proxy port is a valid response as no API
+    registered yet with Kong.
+
+    You can quickly learn how to use Kong with the
+    [5-minute Quickstart](https://getkong.org//docs/latest/getting-started/quickstart).
+
+8.  **Uninstalling Kong**
+
+    To uninstall Kong, run following command:
+
+    ```bash
+    $ dcos package uninstall kong
+    ```
+
+9.  **Example**
 
     For this demo, we created an app which returns `Hello world` on port `8080`.
     Using the `my_app.json` file from the kong-dist-dcos repo, deploy the app in
@@ -105,8 +288,6 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
     $ dcos marathon app add my_app.json
     ```
 
-8. **Using Kong**
-    
     Create an API on Kong:
 
     ```bash
@@ -130,29 +311,12 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
     Hello world
     ```
 
-    Quickly learn how to use Kong with the 
+    Quickly learn how to use Kong with the
     [5-minute Quickstart](https://getkong.org//docs/latest/getting-started/quickstart).
-
-## Benchmarking Kong
-  
-  We prepared a simple benchmark by comparing performance of Nginx and
-  Kong (with Postgres) running on DC/OS cluster. We used
-  [Jmeter](http://jmeter.apache.org/usermanual/build-web-test-plan.html) to
-  genrate sample requests and collect the performace data. We ran a Kong
-  instance with one plugin `basic-auth` and a Nginx instance proxying request to
-  host `mockbin.com`. Both Kong and Nginx instance assingned 1 cpu and 1 gb ram.
-  We ran the test plan using 25 threads with 400 requests in loop.
-
-### Mesurements
-
-| Proxy   | Samples| Average| Min  | Max   | Std. Dev. | Error %  | Throughput | KB/sec | Avg. Bytes |
-|---------|--------|--------|------|-------|-----------|----------|------------|--------|------------|
-| Nginx   | 10000  | 202    | 192  | 1000  | 28.34     | 0.00%    | 109.6      | 184.83 | 1727.2     |
-| Kong    | 10000  | 207    | 193  | 8574  | 109.46    | 0.00%    | 101.3      | 209.14 | 2113.4     |
 
 ## Enterprise Support
 
-Support, Demo, Training, API Certifications and Consulting available 
+Support, Demo, Training, API Certifications and Consulting available
 at http://getkong.org/enterprise.
 
 [kong-logo]: http://i.imgur.com/4jyQQAZ.png
@@ -164,4 +328,3 @@ at http://getkong.org/enterprise.
 [gitter-badge]: https://img.shields.io/badge/Gitter-Join%20Chat-blue.svg
 [mailing-list-badge]: https://img.shields.io/badge/Email-Join%20Mailing%20List-blue.svg
 [mailing-list-url]: https://groups.google.com/forum/#!forum/konglayer
-
