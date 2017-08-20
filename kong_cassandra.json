@@ -1,76 +1,45 @@
 {
-  "id": "/kong",
-  "cmd": "KONG_NGINX_DAEMON=\"off\" KONG_CLUSTER_ADVERTISE=$HOST:$PORT3  kong start",
-  "cpus": 1,
-  "mem": 512,
-  "disk": 0,
-  "instances": 1,
-  "acceptedResourceRoles": [
-    "*"
-  ],
-  "container": {
-    "type": "DOCKER",
-    "volumes": [],
-    "docker": {
-      "image": "kong",
-      "network": "BRIDGE",
-      "portMappings": [
-        {
-          "containerPort": 8000,
-          "hostPort": 0,
-          "servicePort": 10001,
-          "protocol": "tcp",
-          "name": "proxy",
-          "labels": {}
-        },
-        {
-          "containerPort": 8001,
-          "hostPort": 0,
-          "servicePort": 10002,
-          "protocol": "tcp",
-          "name": "admin",
-          "labels": {}
-        },
-        {
-          "containerPort": 8443,
-          "hostPort": 0,
-          "servicePort": 10003,
-          "protocol": "tcp",
-          "name": "ssl",
-          "labels": {}
-        },
-        {
-          "containerPort": 7946,
-          "hostPort": 0,
-          "protocol": "tcp,udp",
-          "name": "serf",
-          "labels": {}
-        }
-      ],
-      "privileged": false,
-      "parameters": [],
-      "forcePullImage": true
+  "service": {
+    "name": "kong",
+    "instances": 1,
+    "cpus": 1,
+    "mem": 512,
+    "role": "*"
+  },
+  "configurations": {
+    "log-level": "notice",
+    "database": {
+      "migrations": true,
+      "use-cassandra": true
+    },
+    "postgres": {
+      "host": "postgresql.marathon.l4lb.thisdcos.directory",
+      "port": 5432,
+      "database": "kong",
+      "user": "kong",
+      "password": "kong"
+    },
+    "cassandra": {
+      "contact-points": "node-0.cassandra.mesos, node-1.cassandra.mesos, node-2.cassandra.mesos",
+      "port": 9042,
+      "keyspace": "kong"
     }
   },
-  "env": {
-    "KONG_CASSANDRA_CONTACT_POINTS": "node-0.cassandra.mesos, node-1.cassandra.mesos, node-2.cassandra.mesos",
-    "KONG_CASSANDRA_KEYSPACE": "kong",
-    "KONG_CASSANDRA_REPL_FACTOR": "2",
-    "KONG_DATABASE": "cassandra"
-  },
-  "healthChecks": [
-    {
-      "protocol": "TCP",
-      "portIndex": 1,
-      "gracePeriodSeconds": 300,
-      "intervalSeconds": 60,
-      "timeoutSeconds": 20,
-      "maxConsecutiveFailures": 3,
-      "ignoreHttp1xx": false
+  "networking": {
+    "proxy": {
+      "external-access": true,
+      "vip-port": 8000,
+      "vip-port-ssl": 8443,
+      "virtual-host": "<vhost>",
+      "https-redirect": true,
+      "service-port": 10201
+    },
+    "admin": {
+      "external-access": false,
+      "vip-port": 8001,
+      "vip-port-ssl": 8444,
+      "https-redirect": false,
+      "service-port": 10202
     }
-  ],
-  "labels": {
-    "HAPROXY_1_GROUP": "external",
-    "HAPROXY_0_GROUP": "external"
   }
 }
