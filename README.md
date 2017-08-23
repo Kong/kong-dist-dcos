@@ -222,7 +222,7 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
 
     ![Kong on DC/OS](img/kong-dcos.png)
 
-7 **Using Kong**
+7. **Using Kong**
 
     Now that Kong is installed, to test the configuration, SSH into one of the
     instances in the cluster (such as a master), and try curl-ing the endpoints:
@@ -269,7 +269,7 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
     You can quickly learn how to use Kong with the
     [5-minute Quickstart](https://getkong.org//docs/latest/getting-started/quickstart).
 
-8.  **Uninstalling Kong**
+8. **Uninstalling Kong**
 
     To uninstall Kong, run following command:
 
@@ -277,7 +277,7 @@ and [Marathon-LB](https://dcos.io/docs/1.9/networking/marathon-lb/).
     $ dcos package uninstall kong
     ```
 
-9.  **Example**
+9. **Example**
 
     For this demo, we created an app which returns `Hello world` on port `8080`.
     Using the `my_app.json` file from the kong-dist-dcos repo, deploy the app in
